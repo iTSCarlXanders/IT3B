@@ -1,5 +1,5 @@
 <?php
-    function logActivity($pdo,$user_id,$email,$action,$status='success'){
+    function logActivity($pdo,$user_id,$user_email,$action,$status='success'){
         try{
    
         // Get Client IP Address
