@@ -1,55 +1,73 @@
 <?php
 
 require_once 'config/config.php';
-require_once 'includes/activity-logger.php';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+$user_id = "root" ?? null;
 
-    $action = trim($_POST['action'] ?? '');
+$user_email = "root" ?? null;
 
-    $user_id = $_SESSION['user_id'] ?? null;
-    $user_email = $_SESSION['user_email'] ?? null;
-
-    if ($action !== '') {
-        $success = logActivity(
-            $pdo,
-            $user_id,
-            $user_email,
-            $action,
-            'success'
-        );
-
-        if ($success) {
-            echo "Activity logged successfully.";
-        } else {
-            echo "Failed to log activity.";
-        }
-    }
-}
+$buttons = [
+    'Login',
+    'Logout',
+    'Create Record',
+    'Update Record',
+    'Delete Record',
+    'View Record',
+    'Upload File',
+    'Download',
+    'Search',
+    'Generate Report'
+];
 
 ?>
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Activity Logger Test</title>
-</head>
+<table border="1" cellpadding="10">
+    <tr>
+        <th>Action</th>
+        <th>Test</th>
+    </tr>
 
-<body>
+    <?php foreach ($buttons as $button): ?>
+        <tr>
+            <td><?= htmlspecialchars($button) ?></td>
 
-<form method="POST">
+            <td>
+                <form method="post">
+                    <input
+                        type="hidden"
+                        name="action"
+                        value="<?= htmlspecialchars($button) ?>"
+                    >
 
-    <button
-        type="submit"
-        name="action"
-        value="sample_activity"
-    >
-        Sample
-    </button>
+                    <button type="submit">Test</button>
+                </form>
+            </td>
+        </tr>
+    <?php endforeach; ?>
+</table>
 
-</form>
+<?php
 
-</body>
-</html>
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+    $action = $_POST['action'] ?? "test_activity";
+
+    $status = random_int(0, 1) ? "success" : "failed";
+
+    $success = logActivity(
+        $pdo,
+        $user_id,
+        $user_email,
+        $action,
+        $status
+);
+    if ($success) {
+        echo "<p>Activity; " . htmlspecialchars($action) . 
+        "status: " . htmlspecialchars($status) . 
+        " logged successfully.</p>";
+    } else {
+        echo "<p>Failed to insert activity log</p>"; 
+       
+    }
+}
+?>
