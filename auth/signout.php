@@ -1,6 +1,16 @@
 <?php
 require_once '../config/config.php';
 
+if(!isset($_SESSION
+['user_id'])) {
+   logActivity(
+    $pdo,null,
+    $_SESSION['user_id'],
+    $_SESSION['user_email'],
+    'logout','
+    success');
+};
+
 $_SESSION = [];
 
 session_destroy();
