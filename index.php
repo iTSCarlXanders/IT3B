@@ -18,7 +18,7 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
     if ($login==='' || $password ===''){
 
         // Log incomplete login attempt
-        logActivity($pdo,null,$login,'login','failure');
+        logActivity($pdo,null,$login,'login','failed');
 
     } else {
 
@@ -32,11 +32,10 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
             'login',
             'success'
         );
-        
+
         echo 'Location: ' . BASE_URL . '/app' . $_SESSION['user_role'] . '/index.php';
         header('Location: ' . BASE_URL . '/app/' . $_SESSION['user_role'] . '/index.php');
         exit;
-
     }
     }
 }
