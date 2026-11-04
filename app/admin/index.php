@@ -5,7 +5,7 @@ require '../../config/config.php';
 
 requireRole('admin');
 
-$section = $_GET['section'] ?? '';
+$section = $_GET['section'] ?? 'activity-logs';
 
 $action = $_GET['action'] ?? '';
 
@@ -45,25 +45,20 @@ if ($action === 'export') {
     if ($section === 'activity-logs') {
 
         $stmt = $pdo->query("
-            SELECT *
+            SELECT
+                activity_log_id,
+                user_id,
+                user_email,
+                activity_log_action,
+                activity_log_status,
+                activity_log_ip_address,
+                activity_log_user_agent,
+                activity_log_created_at
             FROM activity_logs
             ORDER BY activity_log_created_at DESC
         ");
 
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        $rows = array_map(function ($row) {
-            return [
-                $row['activity_log_id'],
-                $row['user_id'],
-                $row['user_email'],
-                $row['activity_log_action'],
-                $row['activity_log_status'],
-                $row['activity_log_ip_address'],
-                $row['activity_log_user_agent'],
-                $row['activity_log_created_at']
-            ];
-        }, $rows);
 
         logActivity(
             $pdo,
@@ -88,7 +83,79 @@ if ($action === 'export') {
             $rows
         );
     }
+
+    if ($section === 'user-sessions') {
+
+        $stmt = $pdo->query("
+            SELECT
+                us.session_id,
+                us.user_id,
+                u.user_username,
+                u.user_email,
+                u.user_role,
+                us.session_start,
+                us.session_end,
+                us.session_duration
+            FROM user_sessions us
+            INNER JOIN users u ON us.user_id = u.user_id
+            ORDER BY us.session_start DESC
+        ");
+
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        foreach ($rows as &$r) {
+
+            $r['session_end'] = $r['session_end'] ?: 'Active';
+
+            if ($r['session_duration'] !== null) {
+
+                $s = (int) $r['session_duration'];
+
+                $hours = floor($s / 3600);
+                $minutes = floor(($s % 3600) / 60);
+                $seconds = $s % 60;
+
+                $r['session_duration'] = sprintf(
+                    '%02d hr %02d min %02d sec',
+                    $hours,
+                    $minutes,
+                    $seconds
+                );
+
+            } else {
+
+                $r['session_duration'] = 'Active';
+
+            }
+        }
+
+        unset($r);
+
+        logActivity(
+            $pdo,
+            $_SESSION['user_id'],
+            $_SESSION['user_email'],
+            'export_user_sessions',
+            'success'
+        );
+
+        exportCsv(
+            'user_sessions',
+            [
+                'Session ID',
+                'User ID',
+                'Username',
+                'Email',
+                'Role',
+                'Session Start',
+                'Session End',
+                'Duration'
+            ],
+            $rows
+        );
+    }
 }
+
 ?>
 
 <!DOCTYPE html>
@@ -116,9 +183,19 @@ if ($action === 'export') {
 
                 <h1 class="h4 mb-0">Welcome, Admin!</h1>
 
-                <a href="../../auth/signout.php" class="btn btn-outline-danger btn-sm">
-                    Sign Out
-                </a>
+                <form method="POST" action="../../auth/signout.php" class="mb-0">
+
+                    <input
+                        type="hidden"
+                        name="csrf_token"
+                        value="<?= htmlspecialchars(generateCsrfToken()) ?>"
+                    >
+
+                    <button type="submit" class="btn btn-outline-danger btn-sm">
+                        Sign Out
+                    </button>
+
+                </form>
 
             </div>
 
@@ -128,13 +205,17 @@ if ($action === 'export') {
 
             <nav class="d-flex flex-wrap gap-2">
 
-                <a href="index.php?section=activity-logs"
-                   class="btn btn-outline-primary btn-sm">
+                <a
+                    href="index.php?section=activity-logs"
+                    class="btn btn-outline-primary btn-sm"
+                >
                     Activity Logs
                 </a>
 
-                <a href="index.php?section=user-sessions"
-                   class="btn btn-outline-primary btn-sm">
+                <a
+                    href="index.php?section=user-sessions"
+                    class="btn btn-outline-primary btn-sm"
+                >
                     User Sessions
                 </a>
 
@@ -146,12 +227,14 @@ if ($action === 'export') {
 
             <div class="container bg-white border rounded shadow-sm p-3 mb-4">
 
-                <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
 
                     <h4 class="mb-0">Activity Logs</h4>
 
-                    <a href="index.php?section=activity-logs&action=export"
-                       class="btn btn-outline-success btn-sm">
+                    <a
+                        href="index.php?section=activity-logs&amp;action=export"
+                        class="btn btn-outline-success btn-sm"
+                    >
                         Export CSV
                     </a>
 
@@ -179,37 +262,39 @@ if ($action === 'export') {
                             <?php foreach ($activities as $activity): ?>
 
                                 <tr>
+
                                     <td>
-                                        <?= htmlspecialchars($activity['activity_log_id'] ?? '') ?>
+                                        <?= htmlspecialchars($activity['activity_log_id']) ?>
                                     </td>
 
                                     <td>
-                                        <?= htmlspecialchars($activity['user_id'] ?? '') ?>
+                                        <?= htmlspecialchars($activity['user_id']) ?>
                                     </td>
 
                                     <td>
-                                        <?= htmlspecialchars($activity['user_email'] ?? '') ?>
+                                        <?= htmlspecialchars($activity['user_email']) ?>
                                     </td>
 
                                     <td>
-                                        <?= htmlspecialchars($activity['activity_log_action'] ?? '') ?>
+                                        <?= htmlspecialchars($activity['activity_log_action']) ?>
                                     </td>
 
                                     <td>
-                                        <?= htmlspecialchars($activity['activity_log_status'] ?? '') ?>
+                                        <?= htmlspecialchars($activity['activity_log_status']) ?>
                                     </td>
 
                                     <td>
-                                        <?= htmlspecialchars($activity['activity_log_ip_address'] ?? '') ?>
+                                        <?= htmlspecialchars($activity['activity_log_ip_address']) ?>
                                     </td>
 
                                     <td>
-                                        <?= htmlspecialchars($activity['activity_log_user_agent'] ?? '') ?>
+                                        <?= htmlspecialchars($activity['activity_log_user_agent']) ?>
                                     </td>
 
                                     <td>
-                                        <?= htmlspecialchars($activity['activity_log_created_at'] ?? '') ?>
+                                        <?= htmlspecialchars($activity['activity_log_created_at']) ?>
                                     </td>
+
                                 </tr>
 
                             <?php endforeach; ?>
@@ -228,7 +313,18 @@ if ($action === 'export') {
 
             <div class="container bg-white border rounded shadow-sm p-3 mb-4">
 
-                <h4 class="mb-3">User Sessions</h4>
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+
+                    <h4 class="mb-0">User Sessions</h4>
+
+                    <a
+                        href="index.php?section=user-sessions&amp;action=export"
+                        class="btn btn-outline-success btn-sm"
+                    >
+                        Export CSV
+                    </a>
+
+                </div>
 
                 <div class="table-responsive">
 
