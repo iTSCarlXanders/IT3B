@@ -1,5 +1,6 @@
 
 <?php
+
 require '../../config/config.php';
 
 requireRole('admin');
@@ -10,7 +11,6 @@ $action = $_GET['action'] ?? '';
 
 if ($section === 'activity-logs') {
 
-    // Activity Logs Query
     $stmt = $pdo->query("
         SELECT *
         FROM activity_logs
@@ -21,7 +21,6 @@ if ($section === 'activity-logs') {
 
 } elseif ($section === 'user-sessions') {
 
-    // User Sessions Query
     $stmt = $pdo->query("
         SELECT
             us.session_id,
@@ -39,6 +38,56 @@ if ($section === 'activity-logs') {
     ");
 
     $sessions = $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+if ($action === 'export') {
+
+    if ($section === 'activity-logs') {
+
+        $stmt = $pdo->query("
+            SELECT *
+            FROM activity_logs
+            ORDER BY activity_log_created_at DESC
+        ");
+
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $rows = array_map(function ($row) {
+            return [
+                $row['activity_log_id'],
+                $row['user_id'],
+                $row['user_email'],
+                $row['activity_log_action'],
+                $row['activity_log_status'],
+                $row['activity_log_ip_address'],
+                $row['activity_log_user_agent'],
+                $row['activity_log_created_at']
+            ];
+        }, $rows);
+
+        logActivity(
+            $pdo,
+            $_SESSION['user_id'],
+            $_SESSION['user_email'],
+            'export_activity_logs',
+            'success'
+        );
+
+        exportCsv(
+            'activity_logs',
+            [
+                'Record ID',
+                'User ID',
+                'User Email',
+                'Action',
+                'Status',
+                'IP Address',
+                'User Agent',
+                'Date & Time'
+            ],
+            $rows
+        );
+    }
 }
 ?>
 
@@ -61,7 +110,6 @@ if ($section === 'activity-logs') {
 
     <div class="container py-4">
 
-        <!-- Admin Header Container -->
         <div class="container bg-white border rounded shadow-sm p-3 mb-4">
 
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
@@ -76,7 +124,6 @@ if ($section === 'activity-logs') {
 
         </div>
 
-        <!-- Navigation Container -->
         <div class="container bg-white border rounded shadow-sm p-3 mb-4">
 
             <nav class="d-flex flex-wrap gap-2">
@@ -95,12 +142,20 @@ if ($section === 'activity-logs') {
 
         </div>
 
-        <!-- Activity Logs Container -->
         <?php if ($section === 'activity-logs'): ?>
 
             <div class="container bg-white border rounded shadow-sm p-3 mb-4">
 
-                <h4 class="mb-3">Activity Logs</h4>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+
+                    <h4 class="mb-0">Activity Logs</h4>
+
+                    <a href="index.php?section=activity-logs&action=export"
+                       class="btn btn-outline-success btn-sm">
+                        Export CSV
+                    </a>
+
+                </div>
 
                 <div class="table-responsive">
 
@@ -169,7 +224,6 @@ if ($section === 'activity-logs') {
 
         <?php endif; ?>
 
-        <!-- User Sessions Container -->
         <?php if ($section === 'user-sessions'): ?>
 
             <div class="container bg-white border rounded shadow-sm p-3 mb-4">
@@ -273,7 +327,6 @@ if ($section === 'activity-logs') {
 
         <?php endif; ?>
 
-        <!-- Default Container -->
         <?php if ($section === ''): ?>
 
             <div class="container bg-white border rounded shadow-sm p-4">
