@@ -1,3 +1,4 @@
+
 <?php
 
 // Start User Session
@@ -24,7 +25,13 @@ function startUserSession($pdo)
         'user_id' => $user_id
     ]);
 
-    return $pdo->lastInsertId();
+    // Get the inserted session ID
+    $session_id = $pdo->lastInsertId();
+
+    // Store session ID
+    $_SESSION['session_id'] = $session_id;
+
+    return $session_id;
 }
 
 
@@ -46,7 +53,7 @@ function endUserSession($pdo)
                 session_start,
                 NOW()
             )
-        WHERE session_id = :session_id
+        WHERE sessions_id = :session_id
           AND session_end IS NULL
     ");
 
@@ -60,7 +67,7 @@ function endUserSession($pdo)
 function hasActiveUserSession($pdo, $user_id)
 {
     $stmt = $pdo->prepare("
-        SELECT session_id
+        SELECT sessions_id
         FROM user_sessions
         WHERE user_id = :user_id
           AND session_end IS NULL
@@ -97,10 +104,10 @@ function checkSessionTimeout()
     // Calculate inactivity duration
     $inactive = time() - $_SESSION['last_activity'];
 
-    // Only end the session if the timeout is reached
+    // Only end the session if timeout is reached
     if ($inactive >= $timeout) {
 
-        // Record the timeout in activity logs
+        // Record timeout in activity logs
         if (function_exists('logActivity')) {
             logActivity(
                 $pdo,
@@ -111,21 +118,21 @@ function checkSessionTimeout()
             );
         }
 
-        // End the database session
+        // End database session
         endUserSession($pdo);
 
-        // Destroy the PHP session
+        // Destroy PHP session
         session_unset();
         session_destroy();
 
-        // Redirect to the login page
+        // Redirect to login page
         header(
             'Location: ' . BASE_URL . '/index.php?timeout=1'
         );
         exit;
     }
 
-    // Update last activity only if the session is still valid
+    // Update last activity
     $_SESSION['last_activity'] = time();
 }
 

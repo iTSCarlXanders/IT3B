@@ -9,6 +9,8 @@ $section = $_GET['section'] ?? 'activity-logs';
 
 $action = $_GET['action'] ?? '';
 
+
+// Fetch Activity Logs
 if ($section === 'activity-logs') {
 
     $stmt = $pdo->query("
@@ -19,11 +21,15 @@ if ($section === 'activity-logs') {
 
     $activities = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-} elseif ($section === 'user-sessions') {
+}
+
+
+// Fetch User Sessions
+elseif ($section === 'user-sessions') {
 
     $stmt = $pdo->query("
         SELECT
-            us.session_id,
+            us.sessions_id AS session_id,
             us.user_id,
             u.user_username,
             u.user_email,
@@ -38,10 +44,14 @@ if ($section === 'activity-logs') {
     ");
 
     $sessions = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
 }
 
+
+// Export CSV
 if ($action === 'export') {
 
+    // Export Activity Logs
     if ($section === 'activity-logs') {
 
         $stmt = $pdo->query("
@@ -84,11 +94,13 @@ if ($action === 'export') {
         );
     }
 
+
+    // Export User Sessions
     if ($section === 'user-sessions') {
 
         $stmt = $pdo->query("
             SELECT
-                us.session_id,
+                us.sessions_id AS session_id,
                 us.user_id,
                 u.user_username,
                 u.user_email,
@@ -97,7 +109,8 @@ if ($action === 'export') {
                 us.session_end,
                 us.session_duration
             FROM user_sessions us
-            INNER JOIN users u ON us.user_id = u.user_id
+            INNER JOIN users u
+                ON us.user_id = u.user_id
             ORDER BY us.session_start DESC
         ");
 
@@ -158,6 +171,7 @@ if ($action === 'export') {
 
 ?>
 
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -177,6 +191,7 @@ if ($action === 'export') {
 
     <div class="container py-4">
 
+        <!-- Admin Header -->
         <div class="container bg-white border rounded shadow-sm p-3 mb-4">
 
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
@@ -201,6 +216,8 @@ if ($action === 'export') {
 
         </div>
 
+
+        <!-- Navigation -->
         <div class="container bg-white border rounded shadow-sm p-3 mb-4">
 
             <nav class="d-flex flex-wrap gap-2">
@@ -223,6 +240,8 @@ if ($action === 'export') {
 
         </div>
 
+
+        <!-- Activity Logs Section -->
         <?php if ($section === 'activity-logs'): ?>
 
             <div class="container bg-white border rounded shadow-sm p-3 mb-4">
@@ -309,6 +328,8 @@ if ($action === 'export') {
 
         <?php endif; ?>
 
+
+        <!-- User Sessions Section -->
         <?php if ($section === 'user-sessions'): ?>
 
             <div class="container bg-white border rounded shadow-sm p-3 mb-4">
@@ -423,6 +444,8 @@ if ($action === 'export') {
 
         <?php endif; ?>
 
+
+        <!-- Default Dashboard Section -->
         <?php if ($section === ''): ?>
 
             <div class="container bg-white border rounded shadow-sm p-4">
@@ -438,6 +461,7 @@ if ($action === 'export') {
         <?php endif; ?>
 
     </div>
+
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
 
